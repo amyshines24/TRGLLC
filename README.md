@@ -12,6 +12,15 @@ surveying sister company of TruLine Restoration Group.
 ## Structure
 - `index.html` — single-page site
 - `css/styles.css` — styles
+- `docs/mac-dev-setup.md` — local development environment setup (macOS)
+- `scripts/mac-setup.sh` — installs that environment
+
+## Local development
+```bash
+bash scripts/mac-setup.sh   # one-time: Homebrew, CLI tools, Claude Code
+npx serve .                 # serve at http://localhost:3000
+```
+See [docs/mac-dev-setup.md](docs/mac-dev-setup.md) for the full walkthrough.
 
 Static site, no build step. Open `index.html` in a browser, or serve with any
 static host (GitHub Pages, Netlify, etc.).
