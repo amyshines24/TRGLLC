@@ -16,20 +16,85 @@ There are three separate layers, and they do different jobs:
 
 ## 1. Homebrew
 
-The package manager everything else installs through.
+The package manager everything else installs through. A fresh Mac does not have
+it — `brew: command not found` on a new machine is normal, not a broken install.
+
+**Step 1 — Xcode Command Line Tools.** Homebrew needs these (git, clang, make).
+Skip this and Homebrew's installer fails partway through, in a confusing spot.
+
+```bash
+xcode-select --install
+```
+
+A system dialog opens; let it finish (a few minutes, ~1.5 GB). If it prints
+`command line tools are already installed`, you are done with this step.
+
+**Step 2 — install Homebrew.** This asks for your Mac login password (it needs
+`sudo` to create `/opt/homebrew`). Typing it shows nothing on screen — that is
+normal, not a frozen terminal.
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-On Apple Silicon, add it to your PATH afterwards (the installer prints this too):
+**Step 3 — put `brew` on your PATH.** On Apple Silicon the installer does *not*
+do this for you. It prints the two lines under "Next steps" and almost everyone
+scrolls past them, which is why `brew: command not found` is so common
+immediately after a successful install.
+
+Check which chip you have:
 
 ```bash
+uname -m     # arm64 = Apple Silicon,  x86_64 = Intel
+```
+
+Apple Silicon (`arm64`):
+
+```bash
+echo >> ~/.zprofile
 echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
 eval "$(/opt/homebrew/bin/brew shellenv)"
 ```
 
-Verify: `brew --version`
+Intel (`x86_64`) — Homebrew installs to `/usr/local`, which is already on PATH,
+so this is usually unnecessary:
+
+```bash
+echo 'eval "$(/usr/local/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/usr/local/bin/brew shellenv)"
+```
+
+Verify:
+
+```bash
+brew --version    # e.g. Homebrew 4.x.x
+which brew        # /opt/homebrew/bin/brew  (or /usr/local/bin/brew)
+```
+
+### If `brew` still is not found
+
+Work through these in order:
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `brew: command not found`, but `/opt/homebrew/bin/brew --version` works | PATH not set | Redo step 3, then open a **new** terminal window. |
+| Worked in one window, not another | `~/.zprofile` only loads in new login shells | Open a new terminal tab, or run `source ~/.zprofile`. |
+| You use bash, not zsh | Wrote to the wrong file | Append the same `eval` line to `~/.bash_profile` instead. Check with `echo $SHELL`. |
+| Installer errored on `git` or `clang` | Missing Command Line Tools | Run step 1, then re-run step 2. |
+| `Permission denied` / sudo failures | Account is not an administrator | Homebrew requires an admin account. Use one, or see the "untar anywhere" install at <https://docs.brew.sh/Installation>. |
+
+### You can skip Homebrew entirely if you want
+
+Homebrew is a convenience, not a requirement. Claude Code installs without it:
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+macOS already ships `git`, `curl`, `python3`, `find`, and `grep`. You can be
+productive today with just those and add `ripgrep`/`fd`/`jq`/`gh` later — those
+are speed upgrades over the built-ins, not prerequisites. Serve the site with
+`python3 -m http.server 8000`, which needs nothing installed at all.
 
 ---
 

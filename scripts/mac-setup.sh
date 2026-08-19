@@ -18,20 +18,52 @@ EXTRAS=0
 say() { printf '\n\033[1;34m==>\033[0m %s\n' "$*"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# ------------------------------------------------- Xcode Command Line Tools ---
+# Homebrew needs these (git, clang, make). Without them its installer fails
+# partway through, which is a confusing place to end up.
+if ! xcode-select -p >/dev/null 2>&1; then
+  say "Installing Xcode Command Line Tools"
+  xcode-select --install || true
+  echo "  A system dialog has opened. Finish that install, then re-run this script."
+  exit 1
+fi
+
 # ---------------------------------------------------------------- Homebrew ---
-if ! have brew; then
-  say "Installing Homebrew"
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  # Apple Silicon puts brew in /opt/homebrew; Intel in /usr/local.
+# Apple Silicon installs to /opt/homebrew, Intel to /usr/local. brew is NOT on
+# PATH by default after install on Apple Silicon — that omission is the single
+# most common cause of "command not found: brew" right after installing it.
+if [[ "$(uname -m)" == "arm64" ]]; then
   BREW_PREFIX="/opt/homebrew"
-  [[ -d "$BREW_PREFIX" ]] || BREW_PREFIX="/usr/local"
+else
+  BREW_PREFIX="/usr/local"
+fi
+
+if ! have brew; then
+  if [[ -x "$BREW_PREFIX/bin/brew" ]]; then
+    say "Homebrew is installed but not on PATH — fixing"
+  else
+    say "Installing Homebrew (this will prompt for your Mac password)"
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  fi
+
+  if [[ ! -x "$BREW_PREFIX/bin/brew" ]]; then
+    echo "ERROR: Homebrew is not at $BREW_PREFIX/bin/brew after install." >&2
+    echo "See https://brew.sh and install it manually, then re-run this script." >&2
+    exit 1
+  fi
+
   eval "$("$BREW_PREFIX/bin/brew" shellenv)"
   if ! grep -q 'brew shellenv' "$HOME/.zprofile" 2>/dev/null; then
-    echo "eval \"\$($BREW_PREFIX/bin/brew shellenv)\"" >> "$HOME/.zprofile"
+    say "Adding brew to PATH in ~/.zprofile"
+    {
+      echo ''
+      echo "eval \"\$($BREW_PREFIX/bin/brew shellenv)\""
+    } >> "$HOME/.zprofile"
   fi
-else
-  say "Homebrew already installed"
 fi
+
+have brew || { echo "ERROR: brew still not on PATH. Open a new terminal and re-run." >&2; exit 1; }
+say "Homebrew ready ($(brew --version | head -1))"
 
 # ------------------------------------------------------------ Core packages ---
 # These are the ones that pay for themselves in every Claude Code session:
